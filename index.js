@@ -35,6 +35,10 @@ Init();
 async function Init() {
 	dotenv.config();
     const dynamodb = new AWS.DynamoDB({
+        credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY,
+            secretAccessKey: process.env.AWS_SECRET_KEY
+        },
         region: "us-east-1"
     });
     var params = {
@@ -42,15 +46,14 @@ async function Init() {
             'audience_acuity': []
         }
     }
+    var count = 0;
+    var isFinished = false;
     
     var fileStream = fs.createReadStream(options.input);
     var outStream = fs.createWriteStream("./output_small.json");
-    var count = 0;
     
     console.log("Starting")
     logbuffer.flush();
-    
-    outStream.write("[");
     
 
     if(options.input) {
@@ -62,6 +65,9 @@ async function Init() {
                 var putRequest = {
                     PutRequest: {
                         Item: {
+                            "id": {
+                                "N": count.toString()
+                            },
                             "First_Name": {
                                 "S": row["First_Name"]
                             },
@@ -110,20 +116,25 @@ async function Init() {
                 
                 
                 params.RequestItems.audience_acuity.push(putRequest);
-                // console.log(params.RequestItems.audience_acuity[0].PutRequest);
-                // process.exit(1);
+                // console.log(JSON.stringify(params.RequestItems.audience_acuity[count].PutRequest));
                 count++;
+                
+                // process.exit(1);
                 if(count % 100000 == 0) {
                     console.log(count);
                     logbuffer.flush();
+                    fileStream.unpipe();
+                    isFinished=true;
                 }
                 //aws dynamodb batch-write-item --request-items file://jsonfile.json
             })
-            .on("end", () => { 
+            .on("unpipe", () => { 
                 console.log("ended");
-                // outStream.write(JSON.stringify(dataOut), null, 4);
-                // outStream.end();
+                // outStream.write(JSON.stringify(params), null, 4);
+
+                outStream.end();
                 
+                isFinished = true;
             })
 
 
@@ -133,5 +144,62 @@ async function Init() {
         console.log("No input file specified");
     }
 
-    
+    await DoAfterPipe();
+
+    async function DoAfterPipe() {
+        console.log("Waiting for me to finish");
+        await sleep(1000);
+        if(isFinished) {
+            console.log("Finished");
+            var tempParams = {
+                RequestItems: {
+                    'audience_acuity': []
+                }
+            }
+            for(var i = 0; i < params.RequestItems.audience_acuity.length; i++) {
+                tempParams.RequestItems.audience_acuity.push(params.RequestItems.audience_acuity[i]);
+                if(i % 24 == 0 && i > 0) {
+                    console.log(i);
+                    logbuffer.flush();
+                    var uploaded = false;
+                    var running = false;
+                    while(!uploaded) {
+                        if(!running) {
+                            running = true;
+                            dynamodb.batchWriteItem(tempParams, function(err, data) {
+                                if (err) {
+                                    console.log("Error", err);
+                                    running  = false;
+                                    // process.exit(1);
+                                } else {
+                                    // console.log("Success", data);
+                                    uploaded = true;
+                                    running = false;
+                                }
+                                logbuffer.flush();
+                            })
+                        } else {
+                            console.log("still running for: " + i);
+                        }
+                        logbuffer.flush();
+                        await sleep(1000);
+                    }
+
+                    logbuffer.flush();
+                    await sleep(1000);
+                    
+                    tempParams.RequestItems.audience_acuity = [];
+                }
+            }
+        } else {
+            await DoAfterPipe();
+        }
+    }
+}
+
+
+
+
+async function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }

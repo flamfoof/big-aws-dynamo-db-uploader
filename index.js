@@ -1,17 +1,10 @@
 import * as fs from "fs";
 import dotenv from "dotenv";
-import util from "util";
 import {Command} from "commander";
-import {dirname, resolve} from "path";
-import {fileURLToPath} from "url";
 import csv from "csv-parser";
 import logbuffer from "console-buffer";
 import * as AWS from "@aws-sdk/client-dynamodb";
-import { table } from "console";
 const program = new Command();
-const readFileAsync = util.promisify(fs.readFile);
-const writeFileAsync = util.promisify(fs.writeFile);
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 program
 	.name("Big AWS DynamoDB Uploader")
@@ -80,7 +73,7 @@ async function Init() {
                 if(count % 100000 == 0) {
                     console.log(count);
                     logbuffer.flush();
-                    fileStream.unpipe();
+                    
                     isFinished=true;
                 }
             })

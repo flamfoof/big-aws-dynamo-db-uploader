@@ -7,13 +7,14 @@ import {fileURLToPath} from "url";
 import csv from "csv-parser";
 import logbuffer from "console-buffer";
 import * as AWS from "@aws-sdk/client-dynamodb";
+import { table } from "console";
 const program = new Command();
 const readFileAsync = util.promisify(fs.readFile);
 const writeFileAsync = util.promisify(fs.writeFile);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 program
-	.name("AAcuity to dynamodb")
+	.name("Big AWS DynamoDB Uploader")
 	.description(
 		"This will take the data from the AAcuity API and put it into a dynamodb table."
 	)
@@ -34,6 +35,7 @@ Init();
 
 async function Init() {
 	dotenv.config();
+    var tableName = "table_name";
     const dynamodb = new AWS.DynamoDB({
         credentials: {
             accessKeyId: process.env.AWS_ACCESS_KEY,
@@ -43,22 +45,17 @@ async function Init() {
     });
     var params = {
         RequestItems: {
-            'audience_acuity': []
+            tableName: []
         }
     }
     var count = 0;
     var isFinished = false;
     
     var fileStream = fs.createReadStream(options.input);
-    var outStream = fs.createWriteStream("./output_small.json");
     
-    console.log("Starting")
-    logbuffer.flush();
-    
-
     if(options.input) {
         const csvFilePath = options.input;
-        // const jsonArray = await pkg().fromFile(csvFilePath)
+
         fileStream
             .pipe(csv())
             .on("data", (row) => { 
@@ -114,25 +111,19 @@ async function Init() {
                     }
                 }
                 
-                
-                params.RequestItems.audience_acuity.push(putRequest);
-                // console.log(JSON.stringify(params.RequestItems.audience_acuity[count].PutRequest));
+                params.RequestItems[tableName].push(putRequest);
+
                 count++;
-                
-                // process.exit(1);
+
                 if(count % 100000 == 0) {
                     console.log(count);
                     logbuffer.flush();
                     fileStream.unpipe();
                     isFinished=true;
                 }
-                //aws dynamodb batch-write-item --request-items file://jsonfile.json
             })
             .on("unpipe", () => { 
                 console.log("ended");
-                // outStream.write(JSON.stringify(params), null, 4);
-
-                outStream.end();
                 
                 isFinished = true;
             })
@@ -150,16 +141,15 @@ async function Init() {
         console.log("Waiting for me to finish");
         await sleep(1000);
         if(isFinished) {
-            console.log("Finished");
             var tempParams = {
                 RequestItems: {
-                    'audience_acuity': []
+                    'table_name': []
                 }
             }
+
             for(var i = 0; i < params.RequestItems.audience_acuity.length; i++) {
                 tempParams.RequestItems.audience_acuity.push(params.RequestItems.audience_acuity[i]);
                 if(i % 24 == 0 && i > 0) {
-                    console.log(i);
                     logbuffer.flush();
                     var uploaded = false;
                     var running = false;

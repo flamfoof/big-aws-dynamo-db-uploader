@@ -1,7 +1,7 @@
 {
-  "name": "aacuity",
+  "name": "Big AWS DynamoDB Uploader",
   "version": "1.0.0",
-  "description": "This is a NodeJS function to upload aacuity data to AWS DynamoDb",
+  "description": "This is a NodeJS function to upload large data to AWS DynamoDb",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/flamfoof/aacuity.git"
+    "url": "git+https://github.com/flamfoof/big-aws-dynamo-db-uploader.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/flamfoof/aacuity/issues"
+    "url": "https://github.com/flamfoof/big-aws-dynamo-db-uploader/issues"
   },
-  "homepage": "https://github.com/flamfoof/aacuity#readme",
+  "homepage": "https://github.com/flamfoof/big-aws-dynamo-db-uploader#readme",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.252.0",
     "aws-sdk": "^2.1296.0",

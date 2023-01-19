@@ -122,9 +122,7 @@ async function Init() {
                                 if (err) {
                                     console.log("Error", err);
                                     running  = false;
-                                    // process.exit(1);
                                 } else {
-                                    // console.log("Success", data);
                                     uploaded = true;
                                     running = false;
                                 }

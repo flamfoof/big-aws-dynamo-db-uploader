@@ -1,3 +1,3 @@
-# aacuity
+# Big AWS DynamoDB Uploader
 
-This is a NodeJS function to upload aacuity data to AWS DynamoDb
+This is a NodeJS function to upload large amounts of data to AWS DynamoDb slowly in a batch of 25. Will slowly, but surely upload everything in time...

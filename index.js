@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 program
 	.name("Big AWS DynamoDB Uploader")
 	.description(
-		"This will take the data from the AAcuity API and put it into a dynamodb table."
+		"This will take the data from large CSV files and put it into a dynamodb table."
 	)
 	.version("0.0.1");
 
@@ -48,7 +48,7 @@ async function Init() {
             tableName: []
         }
     }
-    
+
     var count = 0;
     var isFinished = false;
     

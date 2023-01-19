@@ -48,6 +48,7 @@ async function Init() {
             tableName: []
         }
     }
+    
     var count = 0;
     var isFinished = false;
     
@@ -62,50 +63,11 @@ async function Init() {
                 var putRequest = {
                     PutRequest: {
                         Item: {
-                            "id": {
+                            "Partition_Id_In_Dynamo_DB": {
                                 "N": count.toString()
                             },
-                            "First_Name": {
-                                "S": row["First_Name"]
-                            },
-                            "Last_Name": {
-                                "S": row["Last_Name"]
-                            },
-                            "Address": {
-                                "S": row["Address"]
-                            },
-                            "City": {
-                                "S": row["City"]
-                            },
-                            "State": {
-                                "S": row["State"]
-                            },
-                            "Zip": {
-                                "S": row["Zip"]
-                            },
-                            "Email": {
-                                "S": row["Email"]
-                            },
-                            "Gender": {
-                                "S": row["Gender"]
-                            },
-                            "Age": {
-                                "S": row["Age"]
-                            },
-                            "Ethnic_Group": {
-                                "S": row["Ethnic_Group"]
-                            },
-                            "Income_HH": {
-                                "S": row["Income_HH"]
-                            },
-                            "Catalog_Affinity": {
-                                "S": row["Catalog_Affinity"]
-                            },
-                            "Recent_Catalog_Purchases_Total_Items": {
-                                "S": row["Recent_Catalog_Purchases_Total_Items"]
-                            },
-                            "Urbanicity": {
-                                "S": row["Urbanicity"]
+                            "Example_Entry_Example": {
+                                "S": row["DataEntryExample"]
                             }
                         }
                     }

@@ -168,8 +168,7 @@ async function Init() {
 
     async function DoAfterPipe() {
         console.log("Waiting for me to finish");
-        if(count > targetStartCount)
-            await sleep(1000);
+        await sleep(1000);
         if(isFinished) {
             console.log("Finished");
             var tempParams = {

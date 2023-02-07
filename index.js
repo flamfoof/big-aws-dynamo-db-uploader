@@ -47,7 +47,11 @@ async function Init() {
         }
     }
     var count = 0;
+    var itemStackIndex = 0;
+    var itemStackLength = 50000;
+    var targetStartCount = 2810000;
     var isFinished = false;
+    var theEnd = false;
     
     var fileStream = fs.createReadStream(options.input);
     var outStream = fs.createWriteStream("./output_small.json");
@@ -61,10 +65,13 @@ async function Init() {
         // const jsonArray = await pkg().fromFile(csvFilePath)
         fileStream
             .pipe(csv())
-            .on("data", (row) => { 
+            .on("data", (row) => {
                 var putRequest = {
                     PutRequest: {
                         Item: {
+                            "Source": {
+                                "S": "aaudia"
+                            },
                             "id": {
                                 "N": count.toString()
                             },
@@ -114,27 +121,40 @@ async function Init() {
                     }
                 }
                 
-                
                 params.RequestItems.audience_acuity.push(putRequest);
                 // console.log(JSON.stringify(params.RequestItems.audience_acuity[count].PutRequest));
                 count++;
                 
                 // process.exit(1);
-                if(count % 100000 == 0) {
+                if(count % itemStackLength == 0) {
+                    itemStackIndex = count - itemStackLength;
                     console.log(count);
                     logbuffer.flush();
-                    fileStream.unpipe();
+                    // if(count < targetStartCount) {
+                    //     params.length = 0;
+                    //     console.log("Resetting");
+                    // }
+                    fileStream.pause();
                     isFinished=true;
                 }
                 //aws dynamodb batch-write-item --request-items file://jsonfile.json
             })
-            .on("unpipe", () => { 
+            .on("pause", () => { 
                 console.log("ended");
                 // outStream.write(JSON.stringify(params), null, 4);
 
                 outStream.end();
                 
                 isFinished = true;
+            })
+            .on("finish", () => { 
+                console.log("ended");
+                // outStream.write(JSON.stringify(params), null, 4);
+
+                outStream.end();
+                
+                isFinished = true;
+                theEnd = true;
             })
 
 
@@ -148,7 +168,8 @@ async function Init() {
 
     async function DoAfterPipe() {
         console.log("Waiting for me to finish");
-        await sleep(1000);
+        if(count > targetStartCount)
+            await sleep(1000);
         if(isFinished) {
             console.log("Finished");
             var tempParams = {
@@ -159,38 +180,85 @@ async function Init() {
             for(var i = 0; i < params.RequestItems.audience_acuity.length; i++) {
                 tempParams.RequestItems.audience_acuity.push(params.RequestItems.audience_acuity[i]);
                 if(i % 24 == 0 && i > 0) {
-                    console.log(i);
+                    console.log(i + itemStackIndex);
                     logbuffer.flush();
                     var uploaded = false;
                     var running = false;
-                    while(!uploaded) {
-                        if(!running) {
-                            running = true;
-                            dynamodb.batchWriteItem(tempParams, function(err, data) {
-                                if (err) {
-                                    console.log("Error", err);
-                                    running  = false;
-                                    // process.exit(1);
-                                } else {
-                                    // console.log("Success", data);
-                                    uploaded = true;
-                                    running = false;
-                                }
+                    if(count > targetStartCount)
+                    {
+                        while(!uploaded) {
+                            if(!running) {
+                                running = true;
+                                dynamodb.batchWriteItem(tempParams, function(err, data) {
+                                    if (err) {
+                                        console.log("Error", err);
+                                        running  = false;
+                                        // console.log(JSON.stringify(tempParams.RequestItems.audience_acuity[0]))
+                                        // process.exit(1);
+                                    } else {
+                                        // console.log("Success", data);
+                                        uploaded = true;
+                                        running = false;
+                                        // console.log("iploaded lol")
+                                    }
+                                    logbuffer.flush();
+                                })
+                            } else {
+                                console.log("still running for: " + (i + itemStackIndex - itemStackLength));
                                 logbuffer.flush();
-                            })
-                        } else {
-                            console.log("still running for: " + i);
+                                await sleep(4000);
+                            }
+                            logbuffer.flush();
+                            await sleep(1000);
                         }
-                        logbuffer.flush();
-                        await sleep(1000);
                     }
 
                     logbuffer.flush();
-                    await sleep(1000);
+
+                    if(count > targetStartCount)
+                        await sleep(1000);
                     
-                    tempParams.RequestItems.audience_acuity = [];
+                    tempParams.RequestItems.audience_acuity.length = 0;
                 }
             }
+
+            // if(tempParams.RequestItems.audience_acuity.length > 0) {
+            //     var uploaded = false;
+            //     while(!uploaded) {
+            //         if(!running) {
+            //             running = true;
+            //             dynamodb.batchWriteItem(tempParams, function(err, data) {
+            //                 if (err) {
+            //                     console.log("Error", err);
+            //                     running  = false;
+            //                     // console.log(JSON.stringify(tempParams.RequestItems.audience_acuity[0]))
+            //                     // process.exit(1);
+            //                 } else {
+            //                     // console.log("Success", data);
+            //                     uploaded = true;
+            //                     running = false;
+            //                     // console.log("iploaded lol")
+            //                 }
+            //                 logbuffer.flush();
+            //             })
+            //         } else {
+            //             console.log("still running for: " + (i + itemStackIndex - itemStackLength));
+            //             logbuffer.flush();
+            //             await sleep(4000);
+            //         }
+            //         logbuffer.flush();
+            //         await sleep(1000);
+            //     }
+            // }
+            tempParams.RequestItems.audience_acuity.length = 0;
+            params.RequestItems.audience_acuity.length = 0;
+            isFinished = false;
+            fileStream.resume();
+            if(!theEnd)
+                await DoAfterPipe();
+
+            if(count > targetStartCount)
+                await sleep(1000);
         } else {
             await DoAfterPipe();
         }
